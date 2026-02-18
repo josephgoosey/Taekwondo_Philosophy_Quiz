@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taekwondo Knowledge Exam</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    h2 {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    #quiz {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 600px;
+      margin: 0 auto;
+      touch-action: pan-y;
+    }
+    .question {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+    .belt-level {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 15px;
+    }
+    .choices button {
+      display: block;
+      margin: 10px 0;
+      padding: 15px;
+      width: 100%;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: #fff;
+      cursor: pointer;
+      transition: background 0.2s;
+      touch-action: manipulation;
+    }
+    .choices button.correct {
+      background-color: #28a745;
+      color: white;
+    }
+    .choices button.incorrect {
+      background-color: #dc3545;
+      color: white;
+    }
+    #nextBtn, #restartBtn {
+      display: block;
+      margin: 20px auto 0;
+      padding: 15px 25px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #nextBtn:hover, #restartBtn:hover {
+      background-color: #0056b3;
+    }
+    #feedback {
+      font-size: 16px;
+      margin-top: 10px;
+      text-align: center;
+    }
+    @media (max-width: 480px) {
+      .question { font-size: 16px; }
+      .belt-level { font-size: 12px; }
+      .choices button { font-size: 14px; padding: 12px; }
+      #nextBtn, #restartBtn { font-size: 16px; padding: 12px 20px; }
+      #feedback { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+
+<h2>Taekwondo Knowledge Exam</h2>
+<div id="quiz"></div>
+
+<script>
+const QUESTION_LIMIT = 15;
+let selectedQuestions = [];
+let currentIndex = 0;
+let score = 0;
+let answered = false;
+
+/* ===========================
+   FULL MASTER QUESTION POOL
+   =========================== */
+const questionPool = [
+  /* WHITE BELT */
+  {q:"What does the White Belt symbolize in Taekwondo?", a:"Purity and readiness to begin training", c:["Purity and readiness to begin training","Power and strength","Danger and caution","Mastery and leadership"], belt:"White Belt"},
+  {q:"What is the primary physical focus at White Belt?", a:"Flexibility", c:["Flexibility","Endurance","Strength","Speed"], belt:"White Belt"},
+  {q:"What is the primary mental focus at White Belt?", a:"Preparation for challenge", c:["Preparation for challenge","Competition","Leadership","Meditation"], belt:"White Belt"},
+  {q:"What does 'Tae' mean in Taekwondo?", a:"Foot (kick or stomp)", c:["Foot (kick or stomp)","Hand (punch or block)","Way of life","Energy"], belt:"White Belt"},
+  {q:"What does 'Kwon' mean in Taekwondo?", a:"Hand (punch or block)", c:["Hand (punch or block)","Foot","Way of life","Energy"], belt:"White Belt"},
+  {q:"What does 'Do' mean in Taekwondo?", a:"Way of life or philosophy", c:["Way of life or philosophy","Strength","Technique","Victory"], belt:"White Belt"},
+
+  /* SOLID YELLOW BELT */
+  {q:"What does the Yellow Belt symbolize?", a:"Sunrise or dawn & opening to receive knowledge", c:["Sunrise or dawn & opening to receive knowledge","Purity and readiness","Growth and development","Danger"], belt:"Solid Yellow Belt"},
+  {q:"What is the physical focus at Yellow Belt?", a:"Correct position", c:["Correct position","Flexibility","Endurance","Strength"], belt:"Solid Yellow Belt"},
+  {q:"What is the mental focus at Yellow Belt?", a:"Set Black Belt goal", c:["Set Black Belt goal","Meditation","Winning competitions","Physical strength"], belt:"Solid Yellow Belt"},
+  {q:"What does 'Tae Ryong' mean?", a:"Constantly Growing Dragon", c:["Constantly Growing Dragon","Flying Tiger","Rising Sun","Strong Wind"], belt:"Solid Yellow Belt"},
+  {q:"Which of the following is part of the Student Creed?", a:"Build true confidence through knowledge, honesty, and strength", c:["Build true confidence through knowledge, honesty, and strength","Never fight at all","Seek revenge","Dominate peers"], belt:"Solid Yellow Belt"},
+
+  /* YELLOW WITH GREEN STRIPE */
+  {q:"Who founded the first USA Tae Ryong Taekwondo School?", a:"Grand Master Yong Sup Shin", c:["Grand Master Yong Sup Shin","General Choi Hong Hi","Bruce Lee","Morihei Ueshiba"], belt:"Yellow/Green Stripe"},
+  {q:"What is the physical focus at Yellow/Green Stripe?", a:"Balance", c:["Balance","Strength","Speed","Endurance"], belt:"Yellow/Green Stripe"},
+  {q:"What is the mental focus at Yellow/Green Stripe?", a:"Positive attitude", c:["Positive attitude","Aggression","Winning","Leadership"], belt:"Yellow/Green Stripe"},
+  {q:"What do the stars on the American flag represent?", a:"50 states", c:["50 states","13 colonies","Original presidents","American ideals"], belt:"Yellow/Green Stripe"},
+  {q:"What do the stripes on the American flag represent?", a:"13 original colonies", c:["13 original colonies","50 states","War victories","Generals"], belt:"Yellow/Green Stripe"},
+  {q:"What does red on the American flag symbolize?", a:"Blood shed in battles", c:["Blood shed in battles","Purity","Liberty","Courage"], belt:"Yellow/Green Stripe"},
+  {q:"What does white on the American flag symbolize?", a:"Purity", c:["Purity","Courage","Liberty","Peace"], belt:"Yellow/Green Stripe"},
+  {q:"What does blue on the American flag symbolize?", a:"Liberty and justice", c:["Liberty and justice","Strength","Valor","Peace"], belt:"Yellow/Green Stripe"},
+
+  /* SOLID GREEN BELT */
+  {q:"What does the Green Belt symbolize?", a:"Infinite growth potential", c:["Infinite growth potential","Danger","Completion","Leadership"], belt:"Solid Green Belt"},
+  {q:"What is the physical focus at Green Belt?", a:"Sharp techniques", c:["Sharp techniques","Endurance","Balance","Speed"], belt:"Solid Green Belt"},
+  {q:"What is the mental focus at Green Belt?", a:"Strong conviction", c:["Strong conviction","Aggression","Meditation","Patience"], belt:"Solid Green Belt"},
+  {q:"In Korean flag philosophy, what does blue (Um) represent?", a:"Negative forces", c:["Negative forces","Positive forces","Heaven","Earth"], belt:"Solid Green Belt"},
+  {q:"In Korean flag philosophy, what does red (Yang) represent?", a:"Positive forces", c:["Positive forces","Negative forces","Water","Fire"], belt:"Solid Green Belt"},
+  {q:"What does the white background of the Korean flag symbolize?", a:"Peace and purity of the Korean people", c:["Peace and purity of the Korean people","War","Victory","Power"], belt:"Solid Green Belt"},
+  {q:"What does 3 broken lines (Gon) represent?", a:"Earth", c:["Earth","Water","Fire","Universe"], belt:"Solid Green Belt"},
+  {q:"What does 2 broken lines (Gam) represent?", a:"Water", c:["Water","Earth","Fire","Universe"], belt:"Solid Green Belt"},
+  {q:"What does 1 broken line (Ri) represent?", a:"Fire", c:["Fire","Water","Earth","Heaven"], belt:"Solid Green Belt"},
+  {q:"What do unbroken lines (Keon) represent?", a:"Universe", c:["Universe","Earth","Water","Fire"], belt:"Solid Green Belt"},
+
+  /* GREEN WITH CENTER BLUE STRIPE */
+  {q:"Physical focus at Green/Blue Stripe?", a:"Strength", c:["Strength","Speed","Flexibility","Endurance"], belt:"Green/Blue Stripe"},
+  {q:"Mental focus at Green/Blue Stripe?", a:"Courage", c:["Courage","Confidence","Patience","Control"], belt:"Green/Blue Stripe"},
+  {q:"Which title corresponds to a 1st Dan black belt?", a:"Assistant (Instructor)", c:["Assistant (Instructor)","Instructor","Master","Grand Master"], belt:"Green/Blue Stripe"},
+  {q:"Which title corresponds to a 2nd or 3rd Dan black belt?", a:"Instructor", c:["Instructor","Assistant","Master","Senior Master"], belt:"Green/Blue Stripe"},
+  {q:"Which title corresponds to a 4th or 5th Dan black belt?", a:"Master (Instructor)", c:["Master (Instructor)","Instructor","Assistant","Grand Master"], belt:"Green/Blue Stripe"},
+  {q:"Which title corresponds to a 6th or 7th Dan black belt?", a:"Senior Master (Instructor)", c:["Senior Master (Instructor)","Master","Instructor","Grand Master"], belt:"Green/Blue Stripe"},
+  {q:"Which title corresponds to an 8th or 9th Dan black belt?", a:"Grand Master (Instructor)", c:["Grand Master (Instructor)","Senior Master","Master","Instructor"], belt:"Green/Blue Stripe"},
+
+  /* SOLID BLUE BELT */
+  {q:"What does the Blue Belt symbolize?", a:"Sky, youth, and ambition", c:["Sky, youth, and ambition","Strength and growth","Danger and caution","Purity"], belt:"Solid Blue Belt"},
+  {q:"Physical focus at Blue Belt?", a:"Speed", c:["Speed","Endurance","Flexibility","Strength"], belt:"Solid Blue Belt"},
+  {q:"Mental focus at Blue Belt?", a:"Introspection", c:["Introspection","Aggression","Meditation","Leadership"], belt:"Solid Blue Belt"},
+  {q:"Tenet of Taekwondo?", a:"Courtesy", c:["Courtesy","Aggression","Strength","Dominance"], belt:"Solid Blue Belt"},
+  {q:"Tenet of Taekwondo?", a:"Integrity", c:["Integrity","Victory","Power","Revenge"], belt:"Solid Blue Belt"},
+  {q:"Tenet of Taekwondo?", a:"Self-Control", c:["Self-Control","Endurance","Fearlessness","Rebellion"], belt:"Solid Blue Belt"},
+  {q:"Tenet of Taekwondo?", a:"Perseverance", c:["Perseverance","Selfishness","Patience","Dominance"], belt:"Solid Blue Belt"},
+  {q:"Tenet of Taekwondo?", a:"Indomitable Spirit", c:["Indomitable Spirit","Strength","Victory","Courage"], belt:"Solid Blue Belt"},
+
+  /* BLUE WITH RED STRIPE */
+  {q:"Requisite of Taekwondo?", a:"Contact with natural surroundings", c:["Contact with natural surroundings","Reading books","Winning competitions","Performing boards"], belt:"Blue/Red Stripe"},
+  {q:"Requisite of Taekwondo?", a:"Contact with diverse physical conditions", c:["Contact with diverse physical conditions","Meditation","Relaxation","Meditation"], belt:"Blue/Red Stripe"},
+  {q:"Requisite of Taekwondo?", a:"Perform suitable exercise", c:["Perform suitable exercise","Sleep","Study","Meditate"], belt:"Blue/Red Stripe"},
+  {q:"Requisite of Taekwondo?", a:"Eat suitable nourishment", c:["Eat suitable nourishment","Meditation","Meditate","Rest"], belt:"Blue/Red Stripe"},
+  {q:"Requisite of Taekwondo?", a:"Get proper amounts of rest", c:["Get proper amounts of rest","Train more","Meditate","Study"], belt:"Blue/Red Stripe"},
+  {q:"Highest regularly attainable Black Belt rank?", a:"9th Dan", c:["7th Dan","8th Dan","9th Dan","10th Dan"], belt:"Blue/Red Stripe"},
+  {q:"Where must Black Belts 6th Dan or higher test?", a:"Kukkiwon headquarters in Seoul, South Korea", c:["Kukkiwon headquarters in Seoul, South Korea","USA headquarters","Tokyo Dojo","China Dojo"], belt:"Blue/Red Stripe"},
+
+  /* SOLID RED BELT */
+  {q:"Red Belt symbolism?", a:"The sun, brightness, energy, danger, and self-defense", c:["The sun, brightness, energy, danger, and self-defense","Purity","Growth","Victory"], belt:"Solid Red Belt"},
+  {q:"Physical focus at Red Belt?", a:"Endurance", c:["Endurance","Strength","Speed","Flexibility"], belt:"Solid Red Belt"},
+  {q:"Mental focus at Red Belt?", a:"Perseverance", c:["Perseverance","Patience","Confidence","Aggression"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Reverence for nature", c:["Reverence for nature","Speed","Competition","Strength"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Physical concentration (Ki-hap)", c:["Physical concentration (Ki-hap)","Meditation","Aggression","Flexibility"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Modesty", c:["Modesty","Strength","Endurance","Aggression"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Thankfulness", c:["Thankfulness","Competition","Selfishness","Greed"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Self-sacrifice", c:["Self-sacrifice","Strength","Flexibility","Aggression"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Cultivate courage", c:["Cultivate courage","Meditation","Aggression","Speed"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Chastity", c:["Chastity","Strength","Competition","Selfishness"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Be strong inside and mild outside", c:["Be strong inside and mild outside","Aggression","Victory","Competition"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Endurance", c:["Endurance","Strength","Speed","Flexibility"], belt:"Solid Red Belt"},
+  {q:"Requisite of mental training at Red Belt?", a:"Reading ability", c:["Reading ability","Meditation","Victory","Strength"], belt:"Solid Red Belt"},
+
+  /* RED WITH CENTER BLACK STRIPE */
+  {q:"Physical focus at Red/Black Stripe?", a:"Control", c:["Control","Strength","Speed","Endurance"], belt:"Red/Black Stripe"},
+  {q:"Mental focus at Red/Black Stripe?", a:"Humility", c:["Humility","Aggression","Confidence","Leadership"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be loyal to your country", c:["Be loyal to your country","Always win","Be aggressive","Dominate others"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be obedient to your parents", c:["Be obedient to your parents","Always fight","Seek recognition","Compete"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be loving between husband & wife", c:["Be loving between husband & wife","Be selfish","Dominate","Be aggressive"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be cooperative between brother & sister", c:["Be cooperative between brother & sister","Fight each other","Dominate","Ignore"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be respectful to your elders", c:["Be respectful to your elders","Ignore","Be aggressive","Dominate"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be faithful between teacher & student", c:["Be faithful between teacher & student","Be aggressive","Dominate","Fight"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Be faithful between friends", c:["Be faithful between friends","Be aggressive","Dominate","Ignore"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Use your skills only for defense", c:["Use your skills only for defense","Attack when provoked","Compete aggressively","Win at all costs"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Never retreat in battle", c:["Never retreat in battle","Always retreat","Avoid conflict","Ignore fights"], belt:"Red/Black Stripe"},
+  {q:"Principle of Taekwondo?", a:"Accompany your decisions with action & finish what you start", c:["Accompany your decisions with action & finish what you start","Delay action","Ignore tasks","Act half-heartedly"], belt:"Red/Black Stripe"},
+
+  /* RED/HALF BLACK & RED */
+  {q:"Black portion of Red/Black belt symbolizes?", a:"Black Belt level skills", c:["Black Belt level skills","Danger","Ambition","Youth"], belt:"Red/Black"},
+  {q:"Red portion of Red/Black belt symbolizes?", a:"Danger due to lack of mental control", c:["Danger due to lack of mental control","Ambition","Purity","Youth"], belt:"Red/Black"},
+  {q:"Physical focus at Red/Black?", a:"Complete mastery of techniques", c:["Complete mastery of techniques","Speed","Endurance","Flexibility"], belt:"Red/Black"},
+  {q:"Mental focus at Red/Black?", a:"Introspection & control", c:["Introspection & control","Aggression","Confidence","Leadership"], belt:"Red/Black"},
+  {q:"Instructor's primary responsibility?", a:"Student's progress", c:["Student's progress","Winning medals","Competition","Popularity"], belt:"Red/Black"},
+  {q:"Instructor's secondary responsibility?", a:"Safety & proper conduct", c:["Safety & proper conduct","Aggression","Winning","Popularity"], belt:"Red/Black"},
+
+  /* BLACK BELT */
+  {q:"Black Belt symbolizes?", a:"Maturity, proficiency, and control", c:["Maturity, proficiency, and control","Danger","Youth","Ambition"], belt:"Black Belt"},
+  {q:"Physical focus at Black Belt?", a:"Perfect technique", c:["Perfect technique","Speed","Endurance","Flexibility"], belt:"Black Belt"},
+  {q:"Mental focus at Black Belt?", a:"Teaching others", c:["Teaching others","Meditation","Aggression","Winning"], belt:"Black Belt"},
+  {q:"Highest Black Belt rank in USA?", a:"9th Dan", c:["9th Dan","8th Dan","7th Dan","6th Dan"], belt:"Black Belt"},
+  {q:"Where must 6th Dan+ test?", a:"Kukkiwon headquarters, Seoul, Korea", c:["Kukkiwon headquarters, Seoul, Korea","USA headquarters","Tokyo Dojo","China Dojo"], belt:"Black Belt"}
+];
+
+/* ===========================
+   QUIZ ENGINE
+   =========================== */
+function startQuiz() {
+  score = 0;
+  currentIndex = 0;
+  answered = false;
+  selectedQuestions = shuffle([...questionPool]).slice(0, QUESTION_LIMIT);
+  showQuestion();
+}
+
+function showQuestion() {
+  const quizDiv = document.getElementById("quiz");
+
+  if (currentIndex >= selectedQuestions.length) {
+    quizDiv.innerHTML = `
+      <h3 style="text-align:center;">Exam Complete</h3>
+      <p style="text-align:center; font-size:18px;">Your Final Score: ${score} / ${QUESTION_LIMIT}</p>
+      <button id="restartBtn" onclick="startQuiz()">Restart Exam</button>
+    `;
+    return;
+  }
+
+  answered = false;
+  const question = selectedQuestions[currentIndex];
+  const shuffledChoices = shuffle([...question.c]);
+
+  quizDiv.innerHTML = `
+    <div class="question">
+      Question ${currentIndex + 1} of ${QUESTION_LIMIT}<br><br>
+      ${question.q}
+    </div>
+    <div class="belt-level">Belt Level: ${question.belt}</div>
+    <div class="choices">
+      ${shuffledChoices.map(choice =>
+        `<button onclick="selectAnswer(this,'${choice}')">${choice}</button>`
+      ).join("")}
+    </div>
+    <div id="feedback"></div>
+    <button id="nextBtn" style="display:none;" onclick="nextQuestion()">Next Question</button>
+  `;
+}
+
+function selectAnswer(button, choice) {
+  if (answered) return;
+  answered = true;
+
+  const question = selectedQuestions[currentIndex];
+  const buttons = document.querySelectorAll(".choices button");
+  const feedbackDiv = document.getElementById("feedback");
+
+  buttons.forEach(b => b.disabled = true);
+
+  if (choice === question.a) {
+    button.classList.add("correct");
+    feedbackDiv.innerHTML = "Correct!";
+    score++;
+  } else {
+    button.classList.add("incorrect");
+    feedbackDiv.innerHTML = `Incorrect. Correct answer: ${question.a}`;
+    buttons.forEach(b => {
+      if (b.innerText === question.a) b.classList.add("correct");
+    });
+  }
+
+  document.getElementById("nextBtn").style.display = "block";
+}
+
+function nextQuestion() {
+  currentIndex++;
+  showQuestion();
+}
+
+/* ===========================
+   SWIPE SUPPORT
+   =========================== */
+let touchStartX = 0;
+let touchEndX = 0;
+const quizDiv = document.getElementById("quiz");
+
+quizDiv.addEventListener('touchstart', e => {
+  touchStartX = e.changedTouches[0].screenX;
+}, false);
+
+quizDiv.addEventListener('touchend', e => {
+  touchEndX = e.changedTouches[0].screenX;
+  handleGesture();
+}, false);
+
+function handleGesture() {
+  if (!answered) return;
+  if (touchEndX < touchStartX - 50) {
+    nextQuestion();
+  }
+  if (touchEndX > touchStartX + 50 && currentIndex > 0) {
+    currentIndex--;
+    showQuestion();
+  }
+}
+
+/* ===========================
+   UTILITY
+   =========================== */
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+startQuiz();
+</script>
+
+</body>
+</html>
